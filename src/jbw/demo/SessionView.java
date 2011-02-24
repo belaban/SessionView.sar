@@ -3,7 +3,7 @@ package jbw.demo;
 import org.jboss.beans.metadata.api.annotations.*;
 import org.jboss.ha.framework.interfaces.ClusterNode;
 import org.jboss.ha.framework.interfaces.GroupMembershipListener;
-import org.jboss.ha.framework.server.ClusterPartition;
+import org.jboss.ha.framework.interfaces.HAPartition;
 
 import javax.management.MBeanServer;
 import javax.management.MBeanServerFactory;
@@ -18,7 +18,7 @@ import java.util.Set;
  * @version $Id$
  */
 public class SessionView implements GroupMembershipListener, SessionViewMBean {
-    private ClusterPartition    partition;
+    private HAPartition partition;
     private static final String SERVICE_NAME="SessionDisplay";
 
 
@@ -26,12 +26,12 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
     }
 
 
-    public ClusterPartition getPartition() {
+    public HAPartition getPartition() {
         return partition;
     }
 
     @Inject(bean="HAPartition")
-    public void setPartition(ClusterPartition partition) {
+    public void setPartition(HAPartition partition) {
         this.partition=partition;
     }
 
