@@ -1,4 +1,4 @@
-package demo.sessionview;
+package jbw.demo;
 
 import org.jboss.beans.metadata.api.annotations.*;
 import org.jboss.ha.framework.interfaces.ClusterNode;
@@ -17,12 +17,12 @@ import java.util.Set;
  * @author Bela Ban
  * @version $Id$
  */
-public class SessionDisplay implements GroupMembershipListener, SessionDisplayMBean {
+public class SessionView implements GroupMembershipListener, SessionViewMBean {
     private ClusterPartition    partition;
     private static final String SERVICE_NAME="SessionDisplay";
 
 
-    public SessionDisplay() {
+    public SessionView() {
     }
 
 

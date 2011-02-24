@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <deployment xmlns="urn:jboss:bean-deployer:2.0">
 
-    <bean name="Chat" class="org.jboss.Chat">
+    <bean name="SessionView" class="jbw.demo.SessionView">
         <!--<property name="partition"><inject bean="HAPartition"/></property>-->
 
-       <annotation>@org.jboss.aop.microcontainer.aspects.jmx.JMX(name="jbw.demo:service=SessionDisplay",exposedInterface=demo.sessionview.SessionDisplayMBean,registerDirectly=true)</annotation>
+       <annotation>@org.jboss.aop.microcontainer.aspects.jmx.JMX(name="jbw.demo:service=SessionView",exposedInterface=jbw.demo.SessionViewMBean,registerDirectly=true)</annotation>
     </bean>
 
 </deployment>
