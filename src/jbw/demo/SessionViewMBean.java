@@ -4,6 +4,6 @@ package jbw.demo;
  * @author Bela Ban
  */
 public interface SessionViewMBean {
-    String dumpSessionIds();
-    String dumpSessionIds2();
+    String listSessions2();
+    String listSessions();
 }

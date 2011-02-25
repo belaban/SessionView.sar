@@ -10,10 +10,8 @@ import org.jboss.web.tomcat.service.session.JBossCacheManager;
 import javax.management.MBeanServer;
 import javax.management.MBeanServerFactory;
 import javax.management.ObjectName;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.StringTokenizer;
+import java.io.Serializable;
+import java.util.*;
 
 
 /**
@@ -72,10 +70,10 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
     }
 
 
-    /** Callback, fetches all the sessionids from all cluster nodes */
-    public String dumpSessionIds() {
+    /** Lists all sessions (local and non-local */
+    public String listSessions2() {
         try {
-            List<String> rsps=partition.callMethodOnCluster(SERVICE_NAME, "_getSessionIds", null, null,
+            List<String> rsps=partition.callMethodOnCluster(SERVICE_NAME, "_listAllSessions", null, null,
                                                             String.class, false, null, 10000, false);
             StringBuilder sb=new StringBuilder();
             for(String rsp: rsps)
@@ -87,51 +85,67 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
         }
     }
 
-    /** Callback, fetches all the sessionids from all cluster nodes */
-    public String dumpSessionIds2() {
+   
+    /** Lists only sessions which are stored on this node as primary or backup (Infinispan's DIST mode) */
+    public String listSessions() {
         try {
-            List<String> rsps=partition.callMethodOnCluster(SERVICE_NAME, "_getSessionIds2", null, null,
-                                                            String.class, false, null, 10000, false);
-            StringBuilder sb=new StringBuilder();
-            for(String rsp: rsps)
-                sb.append(rsp).append("\n");
-            return sb.toString();
-        }
-        catch(InterruptedException e) {
-            return e.toString();
-        }
-    }
+            List<Data> rsps=partition.callMethodOnCluster(SERVICE_NAME, "_listSessions", null, null,
+                                                          Data.class, false, null, 10000, false);
 
-    /** Returns all the web sessions on this node */
-    public String _getSessionIds() {
-        MBeanServer mbean_server=getMBeanServer();
-        ObjectName query=null;
-        try {
-            query=new ObjectName("jboss.web:*,type=Manager");
-            StringBuilder sb=new StringBuilder(getLocalAddress() + ":\n");
-            Set<ObjectName> names=mbean_server.queryNames(query, null);
-            for(ObjectName name: names) {
-                Object sessions=mbean_server.invoke(name, "listSessionIds", null, null);
-                if(sessions != null && (sessions instanceof String && ((String)sessions).trim().length() > 0)) {
-                    String context=name.getKeyProperty("path");
-                    if(context == null)
-                        context=name.toString();
-                    sb.append(context + ": " + sessions).append("\n");
+            // map of contexts and a map<session-id,Set<host>> which store it
+            Map<String,Map<String,Set<String>>> map=new HashMap<String,Map<String,Set<String>>>();
+
+            for(Data data: rsps) {
+                String host=data.host;
+                if(data.sessions != null) {
+                    for(Map.Entry<String,Set<String>> entry: data.sessions.entrySet()) {
+                        String context=entry.getKey();
+                        Set<String> session_ids=entry.getValue();
+                        add(map, host, context, session_ids);
+                    }
                 }
             }
-            sb.append("\n");
+
+            StringBuilder sb=new StringBuilder();
+            for(Map.Entry<String,Map<String,Set<String>>> entry: map.entrySet()) {
+                String context=entry.getKey();
+                Map<String,Set<String>> sessions=entry.getValue();
+                sb.append(context).append(":\n");
+                for(Map.Entry<String,Set<String>> entry2: sessions.entrySet())
+                    sb.append("  ").append(entry2.getKey()).append(": ").append(entry2.getValue()).append("\n");
+                sb.append("\n");
+            }
             return sb.toString();
         }
-        catch(Exception e) {
+        catch(InterruptedException e) {
             return e.toString();
         }
     }
 
-     public String _getSessionIds2() {
+    protected static void add(Map<String,Map<String,Set<String>>> map, String host, String context, Set<String> session_ids) {
+        Map<String,Set<String>> sessions=map.get(context);
+        if(sessions == null) {
+            sessions=new HashMap<String,Set<String>>();
+            map.put(context, sessions);
+        }
+        for(String session_id: session_ids) {
+            Set<String> hosts=sessions.get(session_id);
+            if(hosts == null) {
+                hosts=new HashSet<String>();
+                sessions.put(session_id, hosts);
+            }
+            hosts.add(host);
+        }
+    }
+
+
+
+     public Data _listSessions() {
          MBeanServer mbean_server=getMBeanServer();
          ObjectName query=null;
+         Data data=null;
          try {
-             StringBuilder sb=new StringBuilder(getLocalAddress() + ":\n");
+             data=new Data(getLocalAddress());
              query=new ObjectName("jboss.web:type=Server");
              Set<ObjectName> names=mbean_server.queryNames(query, null);
              for(ObjectName name: names) {
@@ -144,17 +158,13 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
                              Manager manager=context.getManager();
                              if(manager instanceof JBossCacheManager) {
                                  JBossCacheManager mgr=(JBossCacheManager)manager;
-                                 String route=mgr.getJvmRoute();
                                  String ids=mgr.listSessionIds();
                                  if(ids != null && ids.trim().length() > 0) {
                                      List<String> sessions=parseSessionIds(ids);
                                      if(!sessions.isEmpty()) {
-                                         sb.append(context.getName() + " (route=" + route + "):\n");
                                          for(String session: sessions) {
-                                             sb.append(session);
-                                             String location=mgr.locate(session);
-                                             boolean is_local=mgr.isLocal(session);
-                                             sb.append(" (location=" + location + ", is_local=" + is_local + "\n");
+                                             if(mgr.isLocal(session))
+                                                 data.add(context.getName(), session);
                                          }
                                      }
                                  }
@@ -163,7 +173,49 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
                      }
                  }
              }
-             sb.append("\n");
+             return data;
+         }
+         catch(Exception e) {
+             e.printStackTrace();
+             return null;
+         }
+     }
+
+
+
+    public String _listAllSessions() {
+        MBeanServer mbean_server=getMBeanServer();
+        ObjectName query=null;
+        StringBuilder sb=new StringBuilder(getLocalAddress() + ":\n");
+         try {
+             query=new ObjectName("jboss.web:type=Server");
+             Set<ObjectName> names=mbean_server.queryNames(query, null);
+             for(ObjectName name: names) {
+                 Service[] services=(Service[])mbean_server.invoke(name, "findServices", null, null);
+                 for(Service service: services) {
+                     Engine engine=(Engine)service.getContainer();
+                     for(Container host: engine.findChildren()) {
+                         for(Container child: host.findChildren()) {
+                             Context context=(Context)child;
+                             Manager manager=context.getManager();
+                             if(manager instanceof JBossCacheManager) {
+                                 JBossCacheManager mgr=(JBossCacheManager)manager;
+                                 String ids=mgr.listSessionIds();
+                                 if(ids != null && ids.trim().length() > 0) {
+                                     List<String> sessions=parseSessionIds(ids);
+                                     if(!sessions.isEmpty()) {
+                                         for(String session: sessions) {
+                                             sb.append("  ").append(context.getName()).append(": ").append(session);
+                                             sb.append(mgr.isLocal(session)? " (local)" : " (non-local)");
+                                             sb.append("\n");
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+                     }
+                 }
+             }
              return sb.toString();
          }
          catch(Exception e) {
@@ -210,7 +262,41 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
     }
 
 
-   
+    public static class Data implements Serializable {
+        private static final long serialVersionUID=7765144547528381044L;
+        protected String host;
+
+        // map of contexts and their associated session-ids
+        protected Map<String,Set<String>> sessions;
+
+        public Data() {
+        }
+
+        public Data(String host) {
+            this.host=host;
+        }
+
+        public void add(String context, String session_id) {
+            if(context == null || session_id == null)
+                return;
+            if(sessions == null)
+                sessions=new HashMap<String,Set<String>>();
+            Set<String> session_ids=sessions.get(context);
+            if(session_ids == null) {
+                session_ids=new HashSet<String>();
+                sessions.put(context, session_ids);
+            }
+            session_ids.add(session_id);
+        }
+
+        public String toString() {
+            StringBuilder sb=new StringBuilder(host + ":\n");
+            if(sessions != null)
+                for(Map.Entry<String,Set<String>> entry: sessions.entrySet())
+                    sb.append("   ").append(entry.getKey()).append(": ").append(entry.getValue()).append("\n");
+            return sb.toString();
+        }
+    }
 
 
 
