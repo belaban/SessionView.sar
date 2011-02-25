@@ -6,12 +6,14 @@ import org.jboss.ha.framework.interfaces.ClusterNode;
 import org.jboss.ha.framework.interfaces.GroupMembershipListener;
 import org.jboss.ha.framework.interfaces.HAPartition;
 import org.jboss.web.tomcat.service.session.JBossCacheManager;
-import org.jboss.web.tomcat.service.session.distributedcache.ispn.DistributedCacheManager;
 
 import javax.management.MBeanServer;
 import javax.management.MBeanServerFactory;
 import javax.management.ObjectName;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+import java.util.StringTokenizer;
 
 
 /**
