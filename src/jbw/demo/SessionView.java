@@ -162,10 +162,8 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
                                  if(ids != null && ids.trim().length() > 0) {
                                      List<String> sessions=parseSessionIds(ids);
                                      if(!sessions.isEmpty()) {
-                                         for(String session: sessions) {
-                                             if(mgr.isLocal(session))
-                                                 data.add(context.getName(), session);
-                                         }
+                                         for(String session: sessions)
+                                             data.add(context.getName(), session);
                                      }
                                  }
                              }
@@ -203,13 +201,9 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
                                  String ids=mgr.listSessionIds();
                                  if(ids != null && ids.trim().length() > 0) {
                                      List<String> sessions=parseSessionIds(ids);
-                                     if(!sessions.isEmpty()) {
-                                         for(String session: sessions) {
-                                             sb.append("  ").append(context.getName()).append(": ").append(session);
-                                             sb.append(mgr.isLocal(session)? " (local)" : " (non-local)");
-                                             sb.append("\n");
-                                         }
-                                     }
+                                     if(!sessions.isEmpty())
+                                         for(String session: sessions)
+                                             sb.append("  ").append(context.getName()).append(": ").append(session + "\n");
                                  }
                              }
                          }
