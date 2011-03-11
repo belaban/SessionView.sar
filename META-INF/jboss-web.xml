@@ -3,7 +3,7 @@
    "-//JBoss//DTD Web Application 5.0//EN"
    "http://www.jboss.org/j2ee/dtd/jboss-web_5_0.dtd">
 
-<jboss-web version="6.0">
+<jboss-web>
     <replication-config>
         <cache-name>web/dist</cache-name>
         <backups>1</backups>
