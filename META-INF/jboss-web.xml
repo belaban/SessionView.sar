@@ -1,11 +1,11 @@
 
 <!DOCTYPE jboss-web PUBLIC
    "-//JBoss//DTD Web Application 5.0//EN"
-   "http://www.jboss.org/j2ee/dtd/jboss-web_6_0.dtd">
+   "http://www.jboss.org/j2ee/dtd/jboss-web_5_0.dtd">
 
 <jboss-web version="6.0">
     <replication-config>
-        <!--<cache-name>web/dist</cache-name>-->
+        <cache-name>web/dist</cache-name>
         <backups>1</backups>
         <replication-mode>ASYNCHRONOUS</replication-mode>
     </replication-config>
