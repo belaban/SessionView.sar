@@ -6,4 +6,5 @@ package jbw.demo;
 public interface SessionViewMBean {
     String listSessions2();
     String listSessions();
+    String printView();
 }

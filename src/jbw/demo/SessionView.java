@@ -85,7 +85,22 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
         }
     }
 
-   
+    public String printView() {
+        List<String> view=partition.getCurrentView();
+        if(view == null)
+            return "n/a";
+        StringBuilder sb=new StringBuilder();
+        boolean first=true;
+        for(String tmp: view) {
+            if(first)
+                first=false;
+            else
+                sb.append(", ");
+            sb.append(tmp);
+        }
+        return sb.toString();
+    }
+
     /** Lists only sessions which are stored on this node as primary or backup (Infinispan's DIST mode) */
     public String listSessions() {
         try {
