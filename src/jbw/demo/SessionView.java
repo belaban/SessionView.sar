@@ -7,9 +7,7 @@ import org.jboss.ha.framework.interfaces.GroupMembershipListener;
 import org.jboss.ha.framework.interfaces.HAPartition;
 import org.jboss.web.tomcat.service.session.JBossCacheManager;
 
-import javax.management.MBeanServer;
-import javax.management.MBeanServerFactory;
-import javax.management.ObjectName;
+import javax.management.*;
 import java.io.Serializable;
 import java.util.*;
 
@@ -99,6 +97,31 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
             sb.append(tmp);
         }
         return sb.toString();
+    }
+
+    /** Prints the Relay view via the channel fetched from the MBeanServer using the RelayWeb name */
+    public String printView2() {
+        MBeanServer mbean_server=getMBeanServer();
+        ObjectName query=null;
+        StringBuilder sb=new StringBuilder();
+        try {
+            query=new ObjectName("jboss.jgroups:type=channel,cluster=*RelayWeb*");
+
+            Set<ObjectName> names=mbean_server.queryNames(query, null);
+            for(ObjectName mbean_name: names) {
+                String name=(String)mbean_server.getAttribute(mbean_name, "Name");
+                String view=(String)mbean_server.getAttribute(mbean_name, "View");
+                if(name != null)
+                    sb.append(name).append(": ");
+                if(view != null)
+                    sb.append(view);
+            }
+            return sb.toString();
+        }
+        catch (Exception e) {
+            e.printStackTrace();
+            return e.toString();
+        }
     }
 
     /** Lists only sessions which are stored on this node as primary or backup (Infinispan's DIST mode) */
