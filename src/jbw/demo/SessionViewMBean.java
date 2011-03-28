@@ -6,6 +6,7 @@ package jbw.demo;
 public interface SessionViewMBean {
     String listSessions2();
     String listSessions();
-    String printView();
-    String printView2();
+    String printViewHAPartition();
+    String printViewRelayWeb();
+    String printViewTunnelWeb();
 }

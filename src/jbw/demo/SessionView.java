@@ -83,7 +83,7 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
         }
     }
 
-    public String printView() {
+    public String printViewHAPartition() {
         List<String> view=partition.getCurrentView();
         if(view == null)
             return "n/a";
@@ -100,12 +100,21 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
     }
 
     /** Prints the Relay view via the channel fetched from the MBeanServer using the RelayWeb name */
-    public String printView2() {
+    public String printViewRelayWeb() {
+        return _printView("jboss.jgroups:type=channel,cluster=*RelayWeb*");
+    }
+
+    public String printViewTunnelWeb() {
+        return _printView("jboss.jgroups:type=channel,cluster=*TunnelWeb*");
+    }
+
+
+     protected static String _printView(String s) {
         MBeanServer mbean_server=getMBeanServer();
         ObjectName query=null;
         StringBuilder sb=new StringBuilder();
         try {
-            query=new ObjectName("jboss.jgroups:type=channel,cluster=*RelayWeb*");
+            query=new ObjectName(s);
 
             Set<ObjectName> names=mbean_server.queryNames(query, null);
             for(ObjectName mbean_name: names) {
@@ -123,6 +132,7 @@ public class SessionView implements GroupMembershipListener, SessionViewMBean {
             return e.toString();
         }
     }
+
 
     /** Lists only sessions which are stored on this node as primary or backup (Infinispan's DIST mode) */
     public String listSessions() {
